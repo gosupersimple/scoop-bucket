@@ -1,0 +1,81 @@
+name: Update Scoop Manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version
+        required: true
+      url_windows_x64:
+        description: URL for Windows x64 version
+        required: true
+      sha_windows_x64:
+        description: SHA256 for Windows x64 version
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    name: Update Scoop manifest & open PR
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Write manifest
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          URL: ${{ github.event.inputs.url_windows_x64 }}
+          SHA: ${{ github.event.inputs.sha_windows_x64 }}
+        run: |-
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version: $VERSION"
+            exit 1
+          fi
+          if ! [[ "$SHA" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::Invalid SHA256: $SHA"
+            exit 1
+          fi
+          if ! [[ "$URL" =~ ^https:// ]]; then
+            echo "::error::Invalid URL: $URL"
+            exit 1
+          fi
+
+          mkdir -p bucket
+          jq -n \
+            --arg version "$VERSION" \
+            --arg url "$URL#/supersimple.exe" \
+            --arg hash "$SHA" \
+            '{
+              "version": $version,
+              "description": "CLI tool for Supersimple configuration management",
+              "homepage": "https://github.com/gosupersimple/supersimple-cli",
+              "architecture": {
+                "64bit": {
+                  "url": $url,
+                  "hash": $hash
+                }
+              },
+              "bin": "supersimple.exe"
+            }' > bucket/supersimple.json
+          cat bucket/supersimple.json
+
+      - name: Setup Git Config
+        run: |
+          git config --global user.name "Supersimple Bot"
+          git config --global user.email "<>"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update manifest to ${{ github.event.inputs.version }}
+          title: Update manifest to ${{ github.event.inputs.version }}
+          body: |
+            This PR updates the Scoop manifest to version ${{ github.event.inputs.version }}.
+          branch: update-manifest-${{ github.event.inputs.version }}
+          base: main
