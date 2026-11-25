@@ -1,0 +1,12 @@
+{
+  "version": "2.32.2",
+  "description": "CLI tool for Supersimple configuration management",
+  "homepage": "https://github.com/gosupersimple/supersimple-cli",
+  "architecture": {
+    "64bit": {
+      "url": "https://assets.supersimple.io/supersimple-cli/releases/v2.32.2/supersimple-x86_64-pc-windows-msvc.exe#/supersimple.exe",
+      "hash": "f8cac8cae07b012fecd08c8f66690978d759658f1b29291236d7dfd116b9b8ba"
+    }
+  },
+  "bin": "supersimple.exe"
+}
